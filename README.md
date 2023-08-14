@@ -1,4 +1,4 @@
-# Back-End para API do projeto Freelancer
+# Back-End para API do projeto Linkr
 -bcrypt
 -Cors
 -dotenv
