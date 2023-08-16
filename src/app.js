@@ -3,6 +3,7 @@ import cors from "cors"
 import router from "./routes/index.routes.js"
 import dayjs from "dayjs"
 import Joi from "joi"
+import bcrypt from "bcrypt"
 
 
 const app = express()
@@ -32,9 +33,6 @@ const createUser = Joi.object({
 app.post("/signup", async (req, res) => {
     const { name, email, password, confirmPassword } = req.body
     let { photoUrl } = req.body
-    const lowerCaseemail = email.toLowerCase(); ///transforma o email sempre para lowercase
-
-
 
     try {
         ///validação de dados de criação com joi
@@ -45,12 +43,15 @@ app.post("/signup", async (req, res) => {
         }
 
 
+        //transforma o email sempre para lowercase
+        const lowerCaseemail = email.toLowerCase();
+
         ///validação se a senha e a confirmação de senha são iguais
         if (password !== confirmPassword) {
             return res.status(422).send('Password and Confirm Password must match.');
         }
 
-        if (!photoUrl.includes('http')) {
+        if (!photoUrl || !photoUrl.includes('http') ) {
             photoUrl = 'https://thumbs.dreamstime.com/b/default-avatar-profile-icon-vector-social-media-user-image-182145777.jpg'
         }
         const passCrypt = bcrypt.hashSync(password, 10);
