@@ -1,6 +1,7 @@
 import { db } from "../database/database.connection.js"
 import bcrypt from "bcrypt"
 import { v4 as uuid } from "uuid"
+import { deleteSession } from "../repositories/session.repository.js";
 
 export async function signIn(req, res) {
     const { email, password } = req.body
@@ -17,5 +18,19 @@ export async function signIn(req, res) {
         res.status(200).send({ token, userId: userInfo.rows[0].id })
     } catch (err) {
         return res.status(500).send(err.message)
+    }
+}
+
+export async function signout(req, res) {
+    const { id } = res.locals.session;
+
+    try {
+
+        await deleteSession(id);
+
+        res.sendStatus(200);
+    } catch (err) {
+
+        res.status(500).send(err.message);
     }
 }
