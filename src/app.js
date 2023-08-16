@@ -39,6 +39,7 @@ app.post("/signup", async (req, res) => {
         const validation = createUser.validate({ name, email, password }, { abortEarly: false });
         if (validation.error) {
             const errors = validation.error.details.map((detail) => detail.message);
+            console.log(errors)
             return res.status(422).json(errors);
         }
 
@@ -48,6 +49,7 @@ app.post("/signup", async (req, res) => {
 
         ///validação se a senha e a confirmação de senha são iguais
         if (password !== confirmPassword) {
+            console.log('Password and Confirm Password must match.')
             return res.status(422).send('Password and Confirm Password must match.');
         }
 
@@ -58,6 +60,7 @@ app.post("/signup", async (req, res) => {
         return res.status(201).send('User created!');
 
     } catch (err) {
+        console.log('ERROR 500')
         return res.status(500).send(err.message);
 
     }
