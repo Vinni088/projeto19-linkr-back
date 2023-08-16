@@ -70,12 +70,3 @@ export async function getUsers(req, res) {
 
 // Navegar pra página do usuário ao clicar no nome dele em um resultado de busca
 ///front + backend
-
-
-
-
-
-
-
-
-
