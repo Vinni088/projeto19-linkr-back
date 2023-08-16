@@ -1,4 +1,4 @@
-import { deleteSession } from "../repositories/session.repository";
+import { deleteSession } from "../repositories/session.repository.js";
 
 export async function signout(req, res) {
     const { id } = res.locals.session;
