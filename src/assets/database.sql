@@ -1,0 +1,39 @@
+CREATE TABLE "user" (
+	id SERIAL NOT NULL PRIMARY KEY,
+	email TEXT NOT NULL UNIQUE,
+	password TEXT NOT NULL,
+	username TEXT NOT NULL UNIQUE,
+	"photoUrl" TEXT NOT NULL
+);
+
+CREATE TABLE session (
+	id SERIAL NOT NULL PRIMARY KEY,
+	"userId" INTEGER NOT NULL REFERENCES "user"(id),
+	token UUID NOT NULL
+);
+
+CREATE TABLE post (
+	id SERIAL NOT NULL PRIMARY KEY,
+	"userId" INTEGER NOT NULL REFERENCES "user"(id),
+	url TEXT NOT NULL,
+	description TEXT NOT NULL
+);
+
+CREATE TABLE "like" (
+	id SERIAL NOT NULL,
+	"postId" INTEGER NOT NULL REFERENCES post(id),
+	"userId" INTEGER NOT NULL REFERENCES "user"(id),
+	PRIMARY KEY ("postId", "userId")
+);
+
+CREATE TABLE hashtag (
+	id SERIAL NOT NULL PRIMARY KEY,
+	name TEXT NOT NULL
+);
+
+CREATE TABLE "postHasHashtag" (
+	id SERIAL NOT NULL,
+	"postId" INTEGER NOT NULL REFERENCES post(id),
+	"hashtagId" INTEGER NOT NULL REFERENCES hashtag(id),
+	PRIMARY KEY ("postId", "hashtagId")
+);
