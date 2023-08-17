@@ -34,3 +34,27 @@ export async function signout(req, res) {
         res.status(500).send(err.message);
     }
 }
+
+export async function checkLogin(req, res) {
+    const { token } = req.body
+
+    try {
+        let usuario = (await db.query(`
+        SELECT 
+        session.token, "user".id, "user".email,
+        "user".username, "user"."photoUrl"
+        FROM session
+        LEFT JOIN "user" ON "user".id = session."userId" 
+        WHERE session.token = $1
+        `,[token])).rows
+
+        if (usuario.length === 0) {
+            return res.status(401).send(" O token enviado é invalido ou nulo. ")
+        }
+
+        res.send(sessions);
+    } catch (err) {
+
+        res.status(500).send(err.message);
+    }
+}
