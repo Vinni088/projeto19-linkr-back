@@ -13,3 +13,13 @@ export async function getPostsRelatedToHashtag(req, res) {
     }
 }
 
+export async function getPostsByUser(req, res) {
+   
+    try {
+
+        res.send("Esta rota retorna os Post de um determinado usuario");
+
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+}
