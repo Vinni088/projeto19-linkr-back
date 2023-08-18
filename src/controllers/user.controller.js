@@ -47,7 +47,7 @@ export async function getUsers(req, res) {
     }
 
     try {
-        const user = await db.query('SELECT * FROM USERS WHERE ID = $1;', [id])
+        const user = await db.query('SELECT * FROM "user" WHERE id = $1;', [id])
         if (user.rows.length > 0) {
             const userData = {
                 name: user.rows[0].name,
