@@ -1,10 +1,11 @@
 import { Router } from "express"
 import { validateAuth } from "../middlewares/validateAuth.js";
-import { getPostsByUser } from "../controllers/post.controller.js";
+import { getPostsByUser, createToken } from "../controllers/post.controller.js";
 
 
 const postsRouter = Router();
 
-postsRouter.get("/user/:id"/*, validateAuth*/, getPostsByUser);
+postsRouter.get("/posts/user/:id", validateAuth, getPostsByUser);
+postsRouter.get("/createToken", createToken)
 
 export default postsRouter;
