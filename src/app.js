@@ -1,7 +1,6 @@
 import express from "express"
 import cors from "cors"
 import router from "./routes/index.routes.js"
-import dayjs from "dayjs"
 import Joi from "joi"
 import bcrypt from "bcrypt"
 
@@ -20,7 +19,7 @@ app.use(router)
 
 ///variavel para pegar o valor do tempo agora e salvar no banco na coluna de createdat.
 ///necessario usar dayjs
-const createdAt = dayjs().format('YYYY-MM-DD HH:mm:ss');
+//const createdAt = dayjs().format('YYYY-MM-DD HH:mm:ss');
 
 
 //joi com validação de nome, email e senha.
