@@ -9,7 +9,7 @@ import bcrypt from "bcrypt"
 
 export async function signUp(req, res) {
     const { email, password, username, photoUrl } = req.body
-    const lowerCaseemail = email.toLowerCase(); ///transforma o email sempre para lowercase
+    const lowerCaseEmail = email.toLowerCase(); ///transforma o email sempre para lowercase
 
     try {
         //verificação se já existe usuário com esse email no banco cadastrado.
@@ -21,7 +21,7 @@ export async function signUp(req, res) {
         const passCrypt = bcrypt.hashSync(password, 10)
 
         //se não existir usuario com esse email, cadastra o usuario no banco.
-        await db.query('INSERT INTO "user" (email, password, username, "photoUrl") values ($1, $2, $3, $4);', [lowerCaseemail, passCrypt, username, photoUrl]);
+        await db.query('INSERT INTO "user" (email, password, username, "photoUrl") values ($1, $2, $3, $4);', [lowerCaseEmail, passCrypt, username, photoUrl]);
         return res.status(201).send('User created!');
     } catch (err) {
         res.status(500).send(err.message)
