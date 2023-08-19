@@ -1,5 +1,6 @@
 import { returnPostsRelatedToHashtag } from "../repositories/posts.repository.js";
 import { db } from "../database/database.connection.js";
+import { v4 as TokenGenerator } from "uuid";
 
 export async function getPostsRelatedToHashtag(req, res) {
     const { hashtag } = req.params;
@@ -16,7 +17,7 @@ export async function getPostsRelatedToHashtag(req, res) {
 
 export async function getPostsByUser(req, res) {
     const { id } = req.params ; //id do usuario do qual queremos os posts
-    const UserId = 2 /*res.locals.session.id;*/ // id do usuario que está vendo os posts
+    const UserId = res.locals.session.id; // id do usuario que está vendo os posts
 
     try {
 
@@ -35,11 +36,12 @@ export async function getPostsByUser(req, res) {
         GROUP BY post.id
         `, [id])).rows
 
-        const likedBy = (await db.query(`
+        let likedBy = (await db.query(`
         SELECT * FROM "like"
         WHERE "userId" = $1
         `,[UserId])).rows
 
+        likedBy = likedBy.map( like => like.postId)
         let resposta = posts.map( post => {
             return {
                 userId: post.userId,
@@ -47,7 +49,7 @@ export async function getPostsByUser(req, res) {
                 postUrl: post.url,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
-                likedByViewer: likedBy.includes( like => like.postId === post.id)
+                likedByViewer: (likedBy.includes(post.id)? true: false)
             }})
 
         return res.status(200).send(resposta)
@@ -55,3 +57,13 @@ export async function getPostsByUser(req, res) {
         return res.status(500).send(error.message)
     }
 };
+
+export async function createToken(req,res) {
+    let token = TokenGenerator()
+    try {
+
+        res.send(token);
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+}
