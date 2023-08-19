@@ -6,7 +6,14 @@ export function insertSession(token, userId) {
 }
 
 export function getSessionByToken(token) {
-    return db.query(`SELECT * FROM session WHERE token=$1`, [token]);
+    return db.query(`
+    SELECT 
+    session.token, "user".id, "user".email,
+    "user".username, "user"."photoUrl"
+    FROM session
+    LEFT JOIN "user" ON "user".id = session."userId" 
+    WHERE session.token = $1
+    `, [token]);
 }
 
 export function deleteSession(id) {
