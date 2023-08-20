@@ -10,7 +10,7 @@ export async function validateAuth(req, res, next) {
     try {
         const result = await getSessionByToken(token);
         if (result.rowCount === 0) return res.sendStatus(401);
-        console.log(result.rows[0]);
+        /*console.log(result.rows[0]);*/
 
         res.locals.session = result.rows[0]; // salva a sessao dentro da resposta para consulta pela prox. função
 

@@ -27,7 +27,8 @@ export async function getPostsByUser(req, res) {
 
         const posts = (await db.query(`
         SELECT 
-            post.id, post."userId", post.url, post.description,
+            post.id, post."userId", 
+            (SELECT "user".username AS username FROM "user" WHERE post."userId" = $1 LIMIT 1), post.url, post.description,
             CAST(COUNT("like".*) AS INTEGER) AS "numberOfLikes"
         FROM post
             LEFT JOIN "like"
@@ -47,6 +48,7 @@ export async function getPostsByUser(req, res) {
                 userId: post.userId,
                 postId: post.id,
                 postUrl: post.url,
+                postOwner: post.username,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
                 likedByViewer: (likedBy.includes(post.id) ? true : false)
