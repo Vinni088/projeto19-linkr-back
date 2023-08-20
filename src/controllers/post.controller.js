@@ -17,7 +17,7 @@ export async function getPostsRelatedToHashtag(req, res) {
 
 export async function getPostsByUser(req, res) {
     const { id } = req.params; //id do usuario do qual queremos os posts
-    const UserId = res.locals.session.id; // id do usuario que está vendo os posts
+    const UserId = res.locals.session.userId; // id do usuario que está vendo os posts
 
     try {
 
@@ -85,7 +85,7 @@ export async function savePost(req, res) {
 
 export async function getPostsTimeline(req, res) {
     const { id } = req.params; //id do usuario do qual queremos os posts
-    const UserId = res.locals.session.id; // id do usuario que está vendo os posts
+    const UserId = res.locals.session.userId; // id do usuario que está vendo os posts
 
     try {
 
@@ -124,4 +124,39 @@ export async function getPostsTimeline(req, res) {
     } catch (error) {
         return res.status(500).send(error.message)
     }
+};
+
+export async function updatePost(req, res) {
+    const { postId } = req.params; //id do usuario do qual queremos os posts
+    const UserId = res.locals.session.userId; // id do usuario que está vendo os posts
+    const { url, description } = req.body;
+    try {
+        let postPreExistente = (await db.query(` SELECT * FROM post WHERE id = $1`, [postId]))
+
+        if (postPreExistente.rowCount === 0) {
+            return res.status(404).send("There isn't a post with this id.")
+        }
+
+        if (postPreExistente.rows[0].userId !== UserId) {
+            return res.status(401).send("This post doesn't belong to this user.")
+        }
+
+        let insert = await db.query(`
+        UPDATE
+            "post"
+        SET
+            (url,description) = 
+            ($1, $2)
+        WHERE
+            id = $3
+        `,[url, description, postId])
+        
+        return res.status(200).send(`Post updated.`)
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
+    /*
+    "url": "https://blog.cobasi.com.br/como-plantar-goiaba/",
+    "description": "Planos Pro fim de Semana!",
+    */
 };
