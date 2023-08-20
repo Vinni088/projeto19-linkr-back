@@ -16,7 +16,7 @@ export async function getPostsRelatedToHashtag(req, res) {
 }
 
 export async function getPostsByUser(req, res) {
-    const { id } = req.params ; //id do usuario do qual queremos os posts
+    const { id } = req.params; //id do usuario do qual queremos os posts
     const UserId = res.locals.session.id; // id do usuario que está vendo os posts
 
     try {
@@ -39,18 +39,19 @@ export async function getPostsByUser(req, res) {
         let likedBy = (await db.query(`
         SELECT * FROM "like"
         WHERE "userId" = $1
-        `,[UserId])).rows
+        `, [UserId])).rows
 
-        likedBy = likedBy.map( like => like.postId)
-        let resposta = posts.map( post => {
+        likedBy = likedBy.map(like => like.postId)
+        let resposta = posts.map(post => {
             return {
                 userId: post.userId,
                 postId: post.id,
                 postUrl: post.url,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
-                likedByViewer: (likedBy.includes(post.id)? true: false)
-            }})
+                likedByViewer: (likedBy.includes(post.id) ? true : false)
+            }
+        })
 
         return res.status(200).send(resposta)
     } catch (error) {
@@ -58,11 +59,23 @@ export async function getPostsByUser(req, res) {
     }
 };
 
-export async function createToken(req,res) {
+export async function createToken(req, res) {
     let token = TokenGenerator()
     try {
 
         res.send(token);
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+}
+
+export async function savePost(req, res) {
+    const { url, description, userId } = req.body
+
+    try {
+        await db.query(`INSERT INTO post ("userId", url, description) VALUES $1, $2, $3;`, [userId, url, description])
+        
+        res.sendStatus(200)
     } catch (err) {
         return res.status(500).send(err.message);
     }
