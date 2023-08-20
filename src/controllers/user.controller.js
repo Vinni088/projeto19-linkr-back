@@ -37,26 +37,14 @@ export async function signUp(req, res) {
 
 ///daniel - 14/08/2023:21:01
 export async function getUsers(req, res) {
-    const { id } = req.params
-
-    ///precisa de token no header
-    ///tem como fazer com joi e com header.
-
-    if (!token) {
-        return res.status(409).send('UNAUTHORIZED! TOKEN IS REQUIRED!')
-    }
+    const { userId } = res.locals.session;
 
     try {
-        const user = await db.query('SELECT * FROM "user" WHERE id = $1;', [id])
-        if (user.rows.length > 0) {
-            const userData = {
-                name: user.rows[0].name,
-                ///adicionar outras mais coisas aqui que quiser retornar
-            }
-            return res.status(200).send(userData)
-        } else {
-            return res.status(404).send('USER NOT FOUND')
-        }
+
+        const user = await db.query('SELECT * FROM "user" WHERE id = $1;', [userId]);
+        if (user.rowCount === 0) return res.status(404).send('USER NOT FOUND');
+
+        res.send(user.rows[0]);
 
     } catch (err) {
 
