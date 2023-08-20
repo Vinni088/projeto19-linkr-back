@@ -73,8 +73,8 @@ export async function savePost(req, res) {
     const { url, description, userId } = req.body
 
     try {
-        await db.query(`INSERT INTO post ("userId", url, description) VALUES $1, $2, $3;`, [userId, url, description])
-        
+        await db.query(`INSERT INTO post ("userId", url, description) VALUES ($1, $2, $3);`, [userId, url, description])
+
         res.sendStatus(200)
     } catch (err) {
         return res.status(500).send(err.message);
