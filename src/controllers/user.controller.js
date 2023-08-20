@@ -58,3 +58,16 @@ export async function getUsers(req, res) {
 
 // Navegar pra página do usuário ao clicar no nome dele em um resultado de busca
 ///front + backend
+
+export async function getUsersBySearch(req, res) {
+    const { str } = req.body
+
+    try {
+        const sanitizedStr = `%${str}%`
+        const users = await db.query('SELECT username FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+
+        return res.status(200).send(users.rows)
+    } catch (err) {
+        return res.status(500).send(err.message)
+    }
+}
