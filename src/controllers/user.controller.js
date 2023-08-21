@@ -71,3 +71,31 @@ export async function searchUsers(req, res) {
         return res.status(500).send(err.message)
     }
 }
+
+
+
+export async function getUserById(req, res) {
+    const { id } = req.params
+
+    try {
+        const user = await db.query('SELECT * FROM USERS WHERE id = $1;', [id])
+
+        const userData = {
+            name: user.rows[0].name,
+            email: user.rows[0].email,
+            password: user.rows[0].password,
+            photoUrl: user.rows[0].photoUrl
+        }
+
+        return res.status(200).send(userData)
+    } catch (error) {
+        return res.status(500).send(err.message)
+
+    }
+
+}
+
+app.get('/user/:id', async (req, res) => {
+
+
+})

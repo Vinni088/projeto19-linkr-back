@@ -3,37 +3,43 @@ CREATE TABLE "user" (
 	email TEXT NOT NULL UNIQUE,
 	password TEXT NOT NULL,
 	username TEXT NOT NULL UNIQUE,
-	"photoUrl" TEXT NOT NULL
+	"photoUrl" TEXT NOT NULL,
+	"createdAt" TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE session (
 	id SERIAL NOT NULL PRIMARY KEY,
 	"userId" INTEGER NOT NULL REFERENCES "user"(id),
-	token UUID NOT NULL
+	token UUID NOT NULL,
+	"createdAt" TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE post (
 	id SERIAL NOT NULL PRIMARY KEY,
 	"userId" INTEGER NOT NULL REFERENCES "user"(id),
 	url TEXT NOT NULL,
-	description TEXT NOT NULL
+	description TEXT NOT NULL,
+	"createdAt" TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE "like" (
 	id SERIAL NOT NULL,
 	"postId" INTEGER NOT NULL REFERENCES post(id),
 	"userId" INTEGER NOT NULL REFERENCES "user"(id),
+	"createdAt" TIMESTAMP DEFAULT NOW(),
 	PRIMARY KEY ("postId", "userId")
 );
 
 CREATE TABLE hashtag (
 	id SERIAL NOT NULL PRIMARY KEY,
-	name TEXT NOT NULL
+	name TEXT NOT NULL,
+	"createdAt" TIMESTAMP DEFAULT NOW()
 );
 
 CREATE TABLE "postHasHashtag" (
 	id SERIAL NOT NULL,
 	"postId" INTEGER NOT NULL REFERENCES post(id),
 	"hashtagId" INTEGER NOT NULL REFERENCES hashtag(id),
+	"createdAt" TIMESTAMP DEFAULT NOW(),
 	PRIMARY KEY ("postId", "hashtagId")
 );
