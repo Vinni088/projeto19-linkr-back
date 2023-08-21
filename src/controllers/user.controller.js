@@ -79,7 +79,6 @@ export async function getUserById(req, res) {
 
     try {
         const user = await db.query('SELECT * FROM USERS WHERE id = $1;', [id])
-        id, name, email, password, photoUrl
 
         const userData = {
             name: user.rows[0].name,
