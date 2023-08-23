@@ -55,7 +55,7 @@ CREATE TABLE "comments" (
 	id SERIAL NOT NULL PRIMARY KEY,
 	"userId" INTEGER NOT NULL REFERENCES "user"(id),
 	"postId" INTEGER NOT NULL REFERENCES post(id),
-        "comment" TEXT NOT NULL,
+    "comment" TEXT NOT NULL,
 	"createdAt" TIMESTAMP DEFAULT NOW()
 );
 

@@ -211,3 +211,31 @@ export async function addRepost(req, res) {
         return res.status(500).send(error.message)
     }
 };
+
+export async function addComment(req, res) {
+    const { postId } = req.params; //id do usuario do qual queremos os posts
+    const { userId } = res.locals.session; // id do usuario que está vendo os posts
+    const { comment } = req.body
+
+    if (comment === undefined || comment.length === 0 ) {
+        return res.status(404).send("You can't make an empty comment")
+    }
+
+    try {
+        let postInquiring = (await db.query(` 
+        SELECT * FROM "post" WHERE "id" = $1;
+        `,[postId]))
+
+        if(postInquiring.rowCount === 0 ) {
+            return res.status(404).send("The post you are trying to comment doesn't exist.")
+        }
+
+        let insert = await db.query(`
+        INSERT INTO "comments" ("userId", "postId", "comment") VALUES ($1, $2, $3);
+        `,[userId, postId, comment])
+
+        return res.status(201).send("Comment added.")
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
+};
