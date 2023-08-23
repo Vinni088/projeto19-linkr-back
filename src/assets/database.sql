@@ -43,3 +43,25 @@ CREATE TABLE "postHasHashtag" (
 	"createdAt" TIMESTAMP DEFAULT NOW(),
 	PRIMARY KEY ("postId", "hashtagId")
 );
+
+CREATE TABLE "rePost" (
+	id SERIAL NOT NULL PRIMARY KEY,
+	"userId" INTEGER NOT NULL REFERENCES "user"(id),
+	"postId" INTEGER NOT NULL REFERENCES post(id),
+	"createdAt" TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE "comments" (
+	id SERIAL NOT NULL PRIMARY KEY,
+	"userId" INTEGER NOT NULL REFERENCES "user"(id),
+	"postId" INTEGER NOT NULL REFERENCES post(id),
+    "comment" TEXT NOT NULL,
+	"createdAt" TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE "follow" (
+	id SERIAL NOT NULL PRIMARY KEY,
+	"followerId" INTEGER NOT NULL REFERENCES "user"(id),
+	"followedId" INTEGER NOT NULL REFERENCES "user"(id),
+	"createdAt" TIMESTAMP DEFAULT NOW()
+);
