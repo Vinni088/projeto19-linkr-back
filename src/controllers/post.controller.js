@@ -64,6 +64,7 @@ export async function getPostsByUser(req, res) {
         SELECT * FROM "like"
         WHERE "userId" = $1
         `, [UserId])).rows
+        likedBy = likedBy.map(like => like.postId)
 
         let hashtags = await db.query(`
         SELECT JSON_AGG(h.name) AS hashtags 
@@ -86,7 +87,6 @@ export async function getPostsByUser(req, res) {
 
         console.log(whoLiked.rows);
 
-        likedBy = likedBy.map(like => like.postId)
         let resposta = posts.map((post, index) => {
             return {
                 userId: post.userId,
@@ -98,7 +98,7 @@ export async function getPostsByUser(req, res) {
                 numberOfLikes: post.numberOfLikes,
                 numberOfReposts: post.numberOfReposts,
                 numberOfComments: post.numberOfComments,
-                Comments: post.Comments
+                Comments: post.Comments,
                 hashtags: mappedHashtags[index],
                 whoLiked: mappedWhoLiked[index],
                 likedByViewer: (likedBy.includes(post.id) ? true : false)
@@ -186,7 +186,7 @@ export async function getPostsTimeline(req, res) {
 
         const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
           
-        let resposta = posts.rows.map((post, index) => {
+        let resposta = posts.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
