@@ -1,6 +1,7 @@
 import express from "express"
 import cors from "cors"
 import router from "./routes/index.routes.js"
+import bcrypt from "bcrypt"
 
 const app = express()
 
@@ -27,6 +28,12 @@ app.get('/user/:id', async (req, res) => {
     } catch (error) {
 
     }
+})
+
+app.get('/enc/:password', (req, res) => {
+    const { password } = req.params;
+
+    res.send(bcrypt.hashSync(password, 10));
 })
 
 const PORT = process.env.PORT || 5000;

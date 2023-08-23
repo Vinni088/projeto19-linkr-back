@@ -2,9 +2,9 @@ import { db } from "../database/database.connection.js";
 
 export function returnPostsRelatedToHashtag(hashtag) {
     return db.query(`
-        SELECT p.id, p.url, p.description, u.username, u."photoUrl", 
-        (SELECT COUNT (*) FROM "like" WHERE "postId"=p.id) AS "likeCount",
-        (SELECT JSON_AGG(u.username) FROM "like" l JOIN "user" u ON u.id=l."userId" JOIN post p ON p.id=l."postId" WHERE p.id=ph."postId") AS "whoLikedList"
+        SELECT p.id as "postId", p.url as "postUrl", p.description as "postDescription", u.username as "postOwner", u."photoUrl", 
+        (SELECT COUNT (*) FROM "like" WHERE "postId"=p.id) AS "numberOfLikes",
+        (SELECT JSON_AGG(u.username) FROM "like" l JOIN "user" u ON u.id=l."userId" JOIN post p ON p.id=l."postId" WHERE p.id=ph."postId") AS "whoLiked"
             FROM "postHasHashtag" ph
                 JOIN post p ON p.id=ph."postId"
                 JOIN hashtag h ON h.id=ph."hashtagId"

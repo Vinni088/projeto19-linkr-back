@@ -1,5 +1,6 @@
 import { db } from "../database/database.connection.js"
 import bcrypt from "bcrypt"
+import { deleteFollow, insertFollow, selectFollowedUsers } from "../repositories/user.repository.js";
 
 //////signup
 
@@ -61,17 +62,60 @@ export async function getUsers(req, res) {
 
 export async function searchUsers(req, res) {
     const { str } = req.body
+    const { userId } = res.locals.session;
 
     try {
         const sanitizedStr = `%${str}%`
-        const users = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+        //const users = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+        const result = await db.query(`
+        SELECT u.username, u."photoUrl", u.id
+            FROM "user" u
+            LEFT JOIN follow f ON f."followerId"=u.id
+            WHERE u.id IN (select "followedId" from "follow" where "followerId"=$1) AND u.username ILIKE $2;`,
+             [userId, sanitizedStr])
 
-        return res.status(200).send(users.rows)
+        const result2 = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+
+        let finalResult = [];
+        if (result.rowCount === 0) {
+
+            finalResult = result2.rows;
+        } else if (result2.rowCount === 0) {
+
+            finalResult = result.rows;
+        } else {
+            
+            finalResult = [...result.rows];
+            result2.rows.forEach(row => {
+                const notExistsInResult = finalResult.find(r => r.username === row.username) === undefined;
+                if (notExistsInResult) finalResult.push(row);
+            });
+        }
+
+        return res.status(200).send(finalResult);
     } catch (err) {
         return res.status(500).send(err.message)
     }
 }
 
+
+export async function userHasFriends(req, res) {
+    const { userId } = res.locals.session;
+    let userHasFriends = false;
+
+    try {
+        const result = await selectFollowedUsers(userId);
+        if (result.rowCount > 0) {
+            userHasFriends = true;
+        }
+
+        res.send(userHasFriends);
+    } catch (error) {
+        es.status(500).send(err.message)
+
+    }
+
+}
 
 
 export async function getUserById(req, res) {
@@ -95,7 +139,39 @@ export async function getUserById(req, res) {
 
 }
 
+export async function followUser(req, res) {
+    const { id } = req.params; // followedId
+    const { userId } = res.locals.session; // followerId
+
+    try {
+
+        await insertFollow(userId, id);
+        res.sendStatus(201);
+    } catch (err) {
+        if (Number(err.code) === 23505) return res.status(409).send({ message: "User already follows the other user!" });
+
+        res.status(500).send(err.message);
+    }
+}
+
+export async function unFollowUser(req, res) {
+    const { id } = req.params; // followedId
+    const { userId } = res.locals.session; // followerId
+
+    try {
+
+        const result = await deleteFollow(userId, id);
+        if (result.rowCount === 0) return res.status(404).send({ message: "You can't unfollow the user because you never followed him in the first place!" });
+        res.sendStatus(204);
+    } catch (err) {
+
+        res.status(500).send(err.message);
+    }
+}
+
+/*
 app.get('/user/:id', async (req, res) => {
 
 
 })
+*/

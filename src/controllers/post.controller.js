@@ -1,14 +1,21 @@
 import { returnPostsRelatedToHashtag } from "../repositories/posts.repository.js";
 import { db } from "../database/database.connection.js";
 import { v4 as TokenGenerator } from "uuid";
+import { returnHashtagsFromPost } from "../repositories/hashtag.repositories.js";
 
 export async function getPostsRelatedToHashtag(req, res) {
     const { hashtag } = req.params;
 
     try {
         const result = await returnPostsRelatedToHashtag(hashtag);
+        const result2 = await returnHashtagsFromPost();
+        
+        const transformedResult = result.rows.map(r => {
+            const matchRow = result2.rows.find(row => row.id === r.postId);
+            return {...r, hashtags: matchRow.hashtags}
+        });
 
-        res.send(result.rows);
+        res.send(transformedResult);
 
     } catch (err) {
         return res.status(500).send(err.message);
@@ -42,8 +49,29 @@ export async function getPostsByUser(req, res) {
         WHERE "userId" = $1
         `, [UserId])).rows
 
+        let hashtags = await db.query(`
+        SELECT JSON_AGG(h.name) AS hashtags 
+            FROM "postHasHashtag" ph 
+            JOIN post p ON p.id=ph."postId" 
+            JOIN hashtag h ON h.id=ph."hashtagId"
+			WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
+
+        const mappedHashtags = hashtags.rows.map(o => o.hashtags);
+
+        let whoLiked = await db.query(`
+        SELECT JSON_AGG(u.username) as "whoLiked" FROM "like" l
+            JOIN post p ON p.id=l."postId"
+            JOIN "user" u ON u.id=l."userId"
+            WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
+
+        const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
+
+        console.log(whoLiked.rows);
+
         likedBy = likedBy.map(like => like.postId)
-        let resposta = posts.map(post => {
+        let resposta = posts.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
@@ -51,6 +79,8 @@ export async function getPostsByUser(req, res) {
                 postOwner: post.username,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
+                hashtags: mappedHashtags[index],
+                whoLiked: mappedWhoLiked[index],
                 likedByViewer: (likedBy.includes(post.id) ? true : false)
             }
         })
@@ -84,38 +114,65 @@ export async function savePost(req, res) {
 }
 
 export async function getPostsTimeline(req, res) {
-    const { id } = req.params; //id do usuario do qual queremos os posts
+    //const { id } = req.params; //id do usuario do qual queremos os posts
     const UserId = res.locals.session.userId; // id do usuario que está vendo os posts
 
     try {
 
-        const posts = (await db.query(`
-        SELECT 
-            post.id, (SELECT "user".username FROM "user" WHERE "user".id = post."userId"),
-            post.url, post.description,
-            CAST(COUNT("like".*) AS INTEGER) AS "numberOfLikes"
-        FROM post
-        LEFT JOIN "like"
-            ON "like"."postId" = post.id
-        LEFT JOIN "user"
-            ON "user".id = "post"."userId"
-        GROUP BY post.id
-        `)).rows
+        const posts = await db.query(`
+            SELECT 
+                post.id, (SELECT "user".username FROM "user" WHERE "user".id = post."userId"),
+                post.url, post.description, (SELECT "user"."photoUrl" FROM "user" WHERE "user".id = post."userId"),
+                CAST(COUNT("like".*) AS INTEGER) AS "numberOfLikes"
+            FROM post
+            LEFT JOIN "like"
+                ON "like"."postId" = post.id
+            LEFT JOIN "user"
+                ON "user".id = "post"."userId"
+            LEFT JOIN follow
+                ON follow."followerId"="user".id
+            WHERE "user".id IN (select "followedId" from follow WHERE "followerId"=$1)
+            GROUP BY post.id;`, [UserId]);
 
         let likedBy = (await db.query(`
         SELECT * FROM "like"
         WHERE "userId" = $1
         `, [UserId])).rows
 
+        let hashtags = await db.query(`
+        SELECT JSON_AGG(h.name) AS hashtags 
+            FROM "postHasHashtag" ph 
+            JOIN post p ON p.id=ph."postId" 
+            JOIN hashtag h ON h.id=ph."hashtagId"
+			WHERE p."userId"=$1
+            GROUP BY p.id;`, [UserId]);
+
+            
+        const mappedHashtags = hashtags.rows.map(o => o.hashtags);
+
+        let whoLiked = await db.query(`
+        SELECT JSON_AGG(u.username) as "whoLiked" FROM "like" l
+            JOIN post p ON p.id=l."postId"
+            JOIN "user" u ON u.id=l."userId"
+            WHERE p."userId"=$1
+            GROUP BY p.id;`, [UserId]);
+
+            console.log(posts);
+
+        const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
+
         likedBy = likedBy.map(like => like.postId)
-        let resposta = posts.map(post => {
+        let resposta = posts.rows.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
                 postUrl: post.url,
+                photoUrl: post.photoUrl,
                 postOwner: post.username,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
+                hashtags: mappedHashtags[index],
+                whoLiked: mappedWhoLiked[index],
                 likedByViewer: (likedBy.includes(post.id) ? true : false)
             }
         })
@@ -149,8 +206,8 @@ export async function updatePost(req, res) {
             ($1, $2)
         WHERE
             id = $3
-        `,[url, description, postId])
-        
+        `, [url, description, postId])
+
         return res.status(200).send(`Post updated.`)
     } catch (error) {
         return res.status(500).send(error.message)
@@ -177,13 +234,13 @@ export async function deletePost(req, res) {
         }
         let deleteHashtags = await db.query(`
         DELETE FROM "postHasHashtag" WHERE "postId" = $1;
-        `,[postId])
+        `, [postId])
         let deleteLikes = await db.query(`
         DELETE FROM "like" WHERE "postId" = $1;
-        `,[postId])
+        `, [postId])
         let deletePost = await db.query(`
         DELETE FROM "post" WHERE "id" = $1;
-        `,[postId])
+        `, [postId])
 
         return res.status(200).send(`Post deleted.`)
     } catch (error) {
