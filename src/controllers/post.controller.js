@@ -107,23 +107,25 @@ export async function savePost(req, res) {
 }
 
 export async function getPostsTimeline(req, res) {
-    const { id } = req.params; //id do usuario do qual queremos os posts
+    //const { id } = req.params; //id do usuario do qual queremos os posts
     const UserId = res.locals.session.userId; // id do usuario que está vendo os posts
 
     try {
 
-        const posts = (await db.query(`
-        SELECT 
-            post.id, (SELECT "user".username FROM "user" WHERE "user".id = post."userId"),
-            post.url, post.description,
-            CAST(COUNT("like".*) AS INTEGER) AS "numberOfLikes"
-        FROM post
-        LEFT JOIN "like"
-            ON "like"."postId" = post.id
-        LEFT JOIN "user"
-            ON "user".id = "post"."userId"
-        GROUP BY post.id
-        `)).rows
+        const posts = await db.query(`
+            SELECT 
+                post.id, (SELECT "user".username FROM "user" WHERE "user".id = post."userId"),
+                post.url, post.description,
+                CAST(COUNT("like".*) AS INTEGER) AS "numberOfLikes"
+            FROM post
+            LEFT JOIN "like"
+                ON "like"."postId" = post.id
+            LEFT JOIN "user"
+                ON "user".id = "post"."userId"
+            LEFT JOIN follow
+                ON follow."followerId"="user".id
+            WHERE "user".id IN (select "followedId" from follow WHERE "followerId"=$1) OR "user".id=$1
+            GROUP BY post.id;`, [UserId]);
 
         let likedBy = (await db.query(`
         SELECT * FROM "like"
@@ -136,8 +138,9 @@ export async function getPostsTimeline(req, res) {
             JOIN post p ON p.id=ph."postId" 
             JOIN hashtag h ON h.id=ph."hashtagId"
 			WHERE p."userId"=$1
-            GROUP BY p.id;`, [id]);
+            GROUP BY p.id;`, [UserId]);
 
+            
         const mappedHashtags = hashtags.rows.map(o => o.hashtags);
 
         let whoLiked = await db.query(`
@@ -145,12 +148,14 @@ export async function getPostsTimeline(req, res) {
             JOIN post p ON p.id=l."postId"
             JOIN "user" u ON u.id=l."userId"
             WHERE p."userId"=$1
-            GROUP BY p.id;`, [id]);
+            GROUP BY p.id;`, [UserId]);
+
+            console.log(posts);
 
         const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
 
         likedBy = likedBy.map(like => like.postId)
-        let resposta = posts.map((post, index) => {
+        let resposta = posts.rows.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
