@@ -96,7 +96,9 @@ export async function getUserById(req, res) {
 
 }
 
+/*
 app.get('/user/:id', async (req, res) => {
 
 
 })
+*/

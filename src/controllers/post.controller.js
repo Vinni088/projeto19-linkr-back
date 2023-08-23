@@ -42,8 +42,35 @@ export async function getPostsByUser(req, res) {
         WHERE "userId" = $1
         `, [UserId])).rows
 
+        let hashtags = await db.query(`
+        SELECT JSON_AGG(h.name) AS hashtags 
+            FROM "postHasHashtag" ph 
+            JOIN post p ON p.id=ph."postId" 
+            JOIN hashtag h ON h.id=ph."hashtagId"
+			WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
+
+        const mappedHashtags = hashtags.rows.map(o => {
+            const { obj } = o;
+            return o.hashtags;
+        });
+
+        let whoLiked = await db.query(`
+        SELECT JSON_AGG(u.username) as "whoLiked" FROM "like" l
+            JOIN post p ON p.id=l."postId"
+            JOIN "user" u ON u.id=l."userId"
+            WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
+
+        const mappedWhoLiked = whoLiked.rows.map(o => {
+            const { obj } = o;
+            return o.whoLiked;
+        });
+
+            console.log(whoLiked.rows);
+
         likedBy = likedBy.map(like => like.postId)
-        let resposta = posts.map(post => {
+        let resposta = posts.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
@@ -51,6 +78,8 @@ export async function getPostsByUser(req, res) {
                 postOwner: post.username,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
+                hashtags: mappedHashtags[index],
+                whoLiked: mappedWhoLiked[index],
                 likedByViewer: (likedBy.includes(post.id) ? true : false)
             }
         })
@@ -149,8 +178,8 @@ export async function updatePost(req, res) {
             ($1, $2)
         WHERE
             id = $3
-        `,[url, description, postId])
-        
+        `, [url, description, postId])
+
         return res.status(200).send(`Post updated.`)
     } catch (error) {
         return res.status(500).send(error.message)
@@ -177,13 +206,13 @@ export async function deletePost(req, res) {
         }
         let deleteHashtags = await db.query(`
         DELETE FROM "postHasHashtag" WHERE "postId" = $1;
-        `,[postId])
+        `, [postId])
         let deleteLikes = await db.query(`
         DELETE FROM "like" WHERE "postId" = $1;
-        `,[postId])
+        `, [postId])
         let deletePost = await db.query(`
         DELETE FROM "post" WHERE "id" = $1;
-        `,[postId])
+        `, [postId])
 
         return res.status(200).send(`Post deleted.`)
     } catch (error) {
