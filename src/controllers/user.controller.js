@@ -1,6 +1,6 @@
 import { db } from "../database/database.connection.js"
 import bcrypt from "bcrypt"
-import { deleteFollow, insertFollow } from "../repositories/user.repository.js";
+import { deleteFollow, insertFollow, selectFollowedUsers } from "../repositories/user.repository.js";
 
 //////signup
 
@@ -98,6 +98,24 @@ export async function searchUsers(req, res) {
     }
 }
 
+
+export async function userHasFriends(req, res) {
+    const { userId } = res.locals.session;
+    let userHasFriends = false;
+
+    try {
+        const result = await selectFollowedUsers(userId);
+        if (result.rowCount > 0) {
+            userHasFriends = true;
+        }
+
+        res.send(userHasFriends);
+    } catch (error) {
+        es.status(500).send(err.message)
+
+    }
+
+}
 
 
 export async function getUserById(req, res) {

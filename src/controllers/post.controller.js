@@ -1,14 +1,21 @@
 import { returnPostsRelatedToHashtag } from "../repositories/posts.repository.js";
 import { db } from "../database/database.connection.js";
 import { v4 as TokenGenerator } from "uuid";
+import { returnHashtagsFromPost } from "../repositories/hashtag.repositories.js";
 
 export async function getPostsRelatedToHashtag(req, res) {
     const { hashtag } = req.params;
 
     try {
         const result = await returnPostsRelatedToHashtag(hashtag);
+        const result2 = await returnHashtagsFromPost();
+        
+        const transformedResult = result.rows.map(r => {
+            const matchRow = result2.rows.find(row => row.id === r.postId);
+            return {...r, hashtags: matchRow.hashtags}
+        });
 
-        res.send(result.rows);
+        res.send(transformedResult);
 
     } catch (err) {
         return res.status(500).send(err.message);
@@ -115,7 +122,7 @@ export async function getPostsTimeline(req, res) {
         const posts = await db.query(`
             SELECT 
                 post.id, (SELECT "user".username FROM "user" WHERE "user".id = post."userId"),
-                post.url, post.description,
+                post.url, post.description, (SELECT "user"."photoUrl" FROM "user" WHERE "user".id = post."userId"),
                 CAST(COUNT("like".*) AS INTEGER) AS "numberOfLikes"
             FROM post
             LEFT JOIN "like"
@@ -124,7 +131,7 @@ export async function getPostsTimeline(req, res) {
                 ON "user".id = "post"."userId"
             LEFT JOIN follow
                 ON follow."followerId"="user".id
-            WHERE "user".id IN (select "followedId" from follow WHERE "followerId"=$1) OR "user".id=$1
+            WHERE "user".id IN (select "followedId" from follow WHERE "followerId"=$1)
             GROUP BY post.id;`, [UserId]);
 
         let likedBy = (await db.query(`
@@ -160,6 +167,7 @@ export async function getPostsTimeline(req, res) {
                 userId: post.userId,
                 postId: post.id,
                 postUrl: post.url,
+                photoUrl: post.photoUrl,
                 postOwner: post.username,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,

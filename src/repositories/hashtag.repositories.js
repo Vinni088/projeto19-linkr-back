@@ -7,3 +7,13 @@ export function returnTrendingHashtags() {
         ORDER BY COUNT(*) DESC
         LIMIT 10;`);
 }
+
+export function returnHashtagsFromPost() {
+    return db.query(`
+        SELECT p.id, JSON_AGG(h.name) AS hashtags 
+        FROM "postHasHashtag" ph 
+        JOIN post p ON p.id=ph."postId" 
+        JOIN hashtag h ON h.id=ph."hashtagId"
+        GROUP BY p.id;
+    `);
+}
