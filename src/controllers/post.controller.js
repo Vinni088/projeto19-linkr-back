@@ -1,13 +1,21 @@
 import { returnPostsRelatedToHashtag } from "../repositories/posts.repository.js";
 import { db } from "../database/database.connection.js";
+import { v4 as TokenGenerator } from "uuid";
+import { returnHashtagsFromPost } from "../repositories/hashtag.repositories.js";
 
 export async function getPostsRelatedToHashtag(req, res) {
     const { hashtag } = req.params;
 
     try {
         const result = await returnPostsRelatedToHashtag(hashtag);
+        const result2 = await returnHashtagsFromPost();
+        
+        const transformedResult = result.rows.map(r => {
+            const matchRow = result2.rows.find(row => row.id === r.postId);
+            return {...r, hashtags: matchRow.hashtags}
+        });
 
-        res.send(result.rows);
+        res.send(transformedResult);
 
     } catch (err) {
         return res.status(500).send(err.message);
@@ -57,9 +65,29 @@ export async function getPostsByUser(req, res) {
         WHERE "userId" = $1
         `, [UserId])).rows
 
-        likedBy = likedBy.map(like => like.postId)
+        let hashtags = await db.query(`
+        SELECT JSON_AGG(h.name) AS hashtags 
+            FROM "postHasHashtag" ph 
+            JOIN post p ON p.id=ph."postId" 
+            JOIN hashtag h ON h.id=ph."hashtagId"
+			WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
 
-        let resposta = posts.map(post => {
+        const mappedHashtags = hashtags.rows.map(o => o.hashtags);
+
+        let whoLiked = await db.query(`
+        SELECT JSON_AGG(u.username) as "whoLiked" FROM "like" l
+            JOIN post p ON p.id=l."postId"
+            JOIN "user" u ON u.id=l."userId"
+            WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
+
+        const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
+
+        console.log(whoLiked.rows);
+
+        likedBy = likedBy.map(like => like.postId)
+        let resposta = posts.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
@@ -70,8 +98,10 @@ export async function getPostsByUser(req, res) {
                 numberOfLikes: post.numberOfLikes,
                 numberOfReposts: post.numberOfReposts,
                 numberOfComments: post.numberOfComments,
-                likedByViewer: (likedBy.includes(post.id) ? true : false),
                 Comments: post.Comments
+                hashtags: mappedHashtags[index],
+                whoLiked: mappedWhoLiked[index],
+                likedByViewer: (likedBy.includes(post.id) ? true : false)
             }
         })
 
@@ -100,9 +130,9 @@ export async function getPostsTimeline(req, res) {
 
         const posts = (await db.query(`
         SELECT 
-            post.id, (SELECT "user".username FROM "user" WHERE "user".id = post."userId"),
+            post.id, post.url, post.description,
+            (SELECT "user".username FROM "user" WHERE "user".id = post."userId"),
             (SELECT "user"."photoUrl" FROM "user" WHERE "user".id = post."userId"),
-            post.url, post.description,
             CAST(COUNT("like".*) AS INTEGER) AS "numberOfLikes",
             CAST(COUNT("rePost".*) AS INTEGER) AS "numberOfReposts",
             CAST(COUNT("comments".*) AS INTEGER) AS "numberOfComments",
@@ -121,9 +151,10 @@ export async function getPostsTimeline(req, res) {
             ON "rePost"."postId" = "post"."id"
         LEFT JOIN  "comments"
             ON "comments"."postId" = "post"."id"
-        GROUP BY post.id
-        ORDER BY post.id
-        `)).rows
+        LEFT JOIN follow
+                ON follow."followerId"="user".id
+        WHERE "user".id IN (select "followedId" from follow WHERE "followerId"=$1)
+        GROUP BY post.id;`, [UserId])).rows;
 
         let likedBy = (await db.query(`
         SELECT * FROM "like"
@@ -132,19 +163,44 @@ export async function getPostsTimeline(req, res) {
 
         likedBy = likedBy.map(like => like.postId);
 
-        let resposta = posts.map(post => {
+
+        let hashtags = await db.query(`
+        SELECT JSON_AGG(h.name) AS hashtags 
+            FROM "postHasHashtag" ph 
+            JOIN post p ON p.id=ph."postId" 
+            JOIN hashtag h ON h.id=ph."hashtagId"
+			WHERE p."userId"=$1
+            GROUP BY p.id;`, [UserId]);
+
+            
+        const mappedHashtags = hashtags.rows.map(o => o.hashtags);
+
+        let whoLiked = await db.query(`
+        SELECT JSON_AGG(u.username) as "whoLiked" FROM "like" l
+            JOIN post p ON p.id=l."postId"
+            JOIN "user" u ON u.id=l."userId"
+            WHERE p."userId"=$1
+            GROUP BY p.id;`, [UserId]);
+
+            console.log(posts);
+
+        const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
+          
+        let resposta = posts.rows.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
                 postUrl: post.url,
                 postOwner: post.username,
-                postOwnerPicture: post.photoUrl,
+                photoUrl: post.photoUrl,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
                 numberOfReposts: post.numberOfReposts,
                 numberOfComments: post.numberOfComments,
+                hashtags: mappedHashtags[index],
+                whoLiked: mappedWhoLiked[index],
+                Comments: post.Comments,
                 likedByViewer: (likedBy.includes(post.id) ? true : false),
-                Comments: post.Comments
             }
         })
 
