@@ -1,6 +1,5 @@
 import { returnPostsRelatedToHashtag } from "../repositories/posts.repository.js";
 import { db } from "../database/database.connection.js";
-import { v4 as TokenGenerator } from "uuid";
 
 export async function getPostsRelatedToHashtag(req, res) {
     const { hashtag } = req.params;
@@ -61,15 +60,6 @@ export async function getPostsByUser(req, res) {
     }
 };
 
-export async function createToken(req, res) {
-    let token = TokenGenerator()
-    try {
-
-        res.send(token);
-    } catch (err) {
-        return res.status(500).send(err.message);
-    }
-}
 
 export async function savePost(req, res) {
     const { url, description, userId } = req.body
@@ -193,4 +183,31 @@ export async function deletePost(req, res) {
     "url": "https://blog.cobasi.com.br/como-plantar-goiaba/",
     "description": "Planos Pro fim de Semana!",
     */
+};
+
+export async function addRepost(req, res) {
+    const { postId } = req.params; //id do usuario do qual queremos os posts
+    const { userId } = res.locals.session; // id do usuario que está vendo os posts
+
+    try {
+        let postOwnerInquiring = (await db.query(` 
+        SELECT * FROM "post" WHERE "id" = $1;
+        `,[postId]))
+        if(postOwnerInquiring.rowCount === 0 ) return res.status(404).send("The post you are trying to repost doesn't exist.")
+        if(postOwnerInquiring.rows[0].userId === userId) return res.status(404).send("You can't repost your own post.")
+
+        let rePostExiste = (await db.query(` 
+        SELECT * FROM "rePost" WHERE "userId" = $1 AND "postId" = $2;
+        `,[userId, postId]))
+
+        if(rePostExiste.rowCount !== 0) {return res.status(401).send("This repost is alredy done!")}
+
+        let insert = await db.query(`
+        INSERT INTO "rePost" ("userId", "postId") VALUES ($1, $2);
+        `,[userId, postId])
+
+        return res.status(201).send("Repost added.")
+    } catch (error) {
+        return res.status(500).send(error.message)
+    }
 };

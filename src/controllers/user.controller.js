@@ -72,8 +72,6 @@ export async function searchUsers(req, res) {
     }
 }
 
-
-
 export async function getUserById(req, res) {
     const { id } = req.params
 
@@ -95,7 +93,3 @@ export async function getUserById(req, res) {
 
 }
 
-app.get('/user/:id', async (req, res) => {
-
-
-})
