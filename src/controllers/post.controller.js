@@ -50,10 +50,7 @@ export async function getPostsByUser(req, res) {
 			WHERE p."userId"=$1
             GROUP BY p.id;`, [id]);
 
-        const mappedHashtags = hashtags.rows.map(o => {
-            const { obj } = o;
-            return o.hashtags;
-        });
+        const mappedHashtags = hashtags.rows.map(o => o.hashtags);
 
         let whoLiked = await db.query(`
         SELECT JSON_AGG(u.username) as "whoLiked" FROM "like" l
@@ -62,12 +59,9 @@ export async function getPostsByUser(req, res) {
             WHERE p."userId"=$1
             GROUP BY p.id;`, [id]);
 
-        const mappedWhoLiked = whoLiked.rows.map(o => {
-            const { obj } = o;
-            return o.whoLiked;
-        });
+        const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
 
-            console.log(whoLiked.rows);
+        console.log(whoLiked.rows);
 
         likedBy = likedBy.map(like => like.postId)
         let resposta = posts.map((post, index) => {
@@ -136,8 +130,27 @@ export async function getPostsTimeline(req, res) {
         WHERE "userId" = $1
         `, [UserId])).rows
 
+        let hashtags = await db.query(`
+        SELECT JSON_AGG(h.name) AS hashtags 
+            FROM "postHasHashtag" ph 
+            JOIN post p ON p.id=ph."postId" 
+            JOIN hashtag h ON h.id=ph."hashtagId"
+			WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
+
+        const mappedHashtags = hashtags.rows.map(o => o.hashtags);
+
+        let whoLiked = await db.query(`
+        SELECT JSON_AGG(u.username) as "whoLiked" FROM "like" l
+            JOIN post p ON p.id=l."postId"
+            JOIN "user" u ON u.id=l."userId"
+            WHERE p."userId"=$1
+            GROUP BY p.id;`, [id]);
+
+        const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
+
         likedBy = likedBy.map(like => like.postId)
-        let resposta = posts.map(post => {
+        let resposta = posts.map((post, index) => {
             return {
                 userId: post.userId,
                 postId: post.id,
@@ -145,6 +158,8 @@ export async function getPostsTimeline(req, res) {
                 postOwner: post.username,
                 postDescription: post.description,
                 numberOfLikes: post.numberOfLikes,
+                hashtags: mappedHashtags[index],
+                whoLiked: mappedWhoLiked[index],
                 likedByViewer: (likedBy.includes(post.id) ? true : false)
             }
         })
