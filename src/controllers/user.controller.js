@@ -1,5 +1,6 @@
 import { db } from "../database/database.connection.js"
 import bcrypt from "bcrypt"
+import { deleteFollow, insertFollow } from "../repositories/user.repository.js";
 
 //////signup
 
@@ -94,6 +95,36 @@ export async function getUserById(req, res) {
 
     }
 
+}
+
+export async function followUser(req, res) {
+    const { id } = req.params; // followedId
+    const { userId } = res.locals.session; // followerId
+
+    try {
+
+        await insertFollow(userId, id);
+        res.sendStatus(201);
+    } catch (err) {
+        if (Number(err.code) === 23505) return res.status(409).send({ message: "User already follows the other user!" });
+
+        res.status(500).send(err.message);
+    }
+}
+
+export async function unFollowUser(req, res) {
+    const { id } = req.params; // followedId
+    const { userId } = res.locals.session; // followerId
+
+    try {
+
+        const result = await deleteFollow(userId, id);
+        if (result.rowCount === 0) return res.status(404).send({ message: "You can't unfollow the user because you never followed him in the first place!" });
+        res.sendStatus(204);
+    } catch (err) {
+
+        res.status(500).send(err.message);
+    }
 }
 
 /*
