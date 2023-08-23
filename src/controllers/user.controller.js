@@ -66,36 +66,50 @@ export async function searchUsers(req, res) {
 
     try {
         const sanitizedStr = `%${str}%`
-        //const users = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+
         const result = await db.query(`
         SELECT u.username, u."photoUrl", u.id
             FROM "user" u
             LEFT JOIN follow f ON f."followerId"=u.id
             WHERE u.id IN (select "followedId" from "follow" where "followerId"=$1) AND u.username ILIKE $2;`,
-             [userId, sanitizedStr])
+            [userId, sanitizedStr])
 
         const result2 = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
 
-        let finalResult = [];
+        const result3 = await db.query(`SELECT "followedId" FROM follow WHERE "followerId"=$1`, [userId]);
+
+        let intermediateResult = [];
         if (result.rowCount === 0) {
 
-            finalResult = result2.rows;
+            intermediateResult = result2.rows;
         } else if (result2.rowCount === 0) {
 
-            finalResult = result.rows;
+            intermediateResult = result.rows;
         } else {
-            
-            finalResult = [...result.rows];
+
+            intermediateResult = [...result.rows];
             result2.rows.forEach(row => {
-                const notExistsInResult = finalResult.find(r => r.username === row.username) === undefined;
-                if (notExistsInResult) finalResult.push(row);
+                const notExistsInResult = intermediateResult.find(r => r.username === row.username) === undefined;
+                if (notExistsInResult) intermediateResult.push(row);
             });
         }
 
-        return res.status(200).send(finalResult);
-    } catch (err) {
-        return res.status(500).send(err.message)
-    }
+        const idsOfFollowed = result3.rows.map(r => r.followedId);
+        const finalResult = intermediateResult.map(r => {
+            let isFollowed;
+            if (idsOfFollowed.includes(r.id)) {
+                isFollowed = true;
+            } else {
+                isFollowed = false;
+            }
+
+            return {...r, isFollowed}
+        });
+
+    return res.status(200).send(finalResult);
+} catch (err) {
+    return res.status(500).send(err.message)
+}
 }
 
 
@@ -142,6 +156,8 @@ export async function getUserById(req, res) {
 export async function followUser(req, res) {
     const { id } = req.params; // followedId
     const { userId } = res.locals.session; // followerId
+
+    if (Number(id) === userId) return res.status(401).send({message: "you can't follow your own, although that's is nice"})
 
     try {
 
