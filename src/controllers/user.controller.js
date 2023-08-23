@@ -62,12 +62,37 @@ export async function getUsers(req, res) {
 
 export async function searchUsers(req, res) {
     const { str } = req.body
+    const { userId } = res.locals.session;
 
     try {
         const sanitizedStr = `%${str}%`
-        const users = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+        //const users = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+        const result = await db.query(`
+        SELECT u.username, u."photoUrl", u.id
+            FROM "user" u
+            LEFT JOIN follow f ON f."followerId"=u.id
+            WHERE u.id IN (select "followedId" from "follow" where "followerId"=$1) AND u.username ILIKE $2;`,
+             [userId, sanitizedStr])
 
-        return res.status(200).send(users.rows)
+        const result2 = await db.query('SELECT username, "photoUrl", id FROM "user" WHERE username ILIKE $1;', [sanitizedStr])
+
+        let finalResult = [];
+        if (result.rowCount === 0) {
+
+            finalResult = result2.rows;
+        } else if (result2.rowCount === 0) {
+
+            finalResult = result.rows;
+        } else {
+            
+            finalResult = [...result.rows];
+            result2.rows.forEach(row => {
+                const notExistsInResult = finalResult.find(r => r.username === row.username) === undefined;
+                if (notExistsInResult) finalResult.push(row);
+            });
+        }
+
+        return res.status(200).send(finalResult);
     } catch (err) {
         return res.status(500).send(err.message)
     }
