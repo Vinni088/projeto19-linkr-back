@@ -114,11 +114,17 @@ export async function getPostsByUser(req, res) {
 export async function savePost(req, res) {
     const { url, description, userId } = req.body
 
+    console.log(url, description, userId)
+    
+    console.log('entrou no savePost')
     try {
+        console.log('entrou no inseriu')
         await db.query(`INSERT INTO post ("userId", url, description) VALUES ($1, $2, $3);`, [userId, url, description])
 
-        res.sendStatus(200)
+        res.status(200).send('Success on posting!')
     } catch (err) {
+        console.log('deu erro no savePost')
+        console.log(err.message)
         return res.status(500).send(err.message);
     }
 }

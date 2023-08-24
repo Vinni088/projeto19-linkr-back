@@ -12,6 +12,7 @@ export async function signUp(req, res) {
     const { email, password, username, photoUrl } = req.body
     const lowerCaseEmail = email.toLowerCase(); ///transforma o email sempre para lowercase
 
+
     try {
         //verificação se já existe usuário com esse email no banco cadastrado.
         const userVerify = await db.query(`SELECT * FROM "user" WHERE email=$1;`, [email])
@@ -168,10 +169,3 @@ export async function unFollowUser(req, res) {
         res.status(500).send(err.message);
     }
 }
-
-/*
-app.get('/user/:id', async (req, res) => {
-
-
-})
-*/
