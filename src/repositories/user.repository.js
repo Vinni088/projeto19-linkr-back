@@ -11,3 +11,7 @@ export function deleteFollow(followerId, followedId) {
 export function selectFollowedUsers(followerId) {
     return db.query(`SELECT * FROM follow f WHERE f."followerId"=$1;`, [followerId]);
 }
+
+export function verifyFollowingUser(followerId, followedId) {
+    return db.query(`SELECT * FROM follow WHERE "followerId"=$1 AND "followedId"=$2;`, [followerId, followedId]);
+}

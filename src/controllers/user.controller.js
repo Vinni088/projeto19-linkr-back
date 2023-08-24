@@ -1,6 +1,6 @@
 import { db } from "../database/database.connection.js"
 import bcrypt from "bcrypt"
-import { deleteFollow, insertFollow, selectFollowedUsers } from "../repositories/user.repository.js";
+import { deleteFollow, insertFollow, selectFollowedUsers, verifyFollowingUser } from "../repositories/user.repository.js";
 
 //////signup
 
@@ -103,13 +103,13 @@ export async function searchUsers(req, res) {
                 isFollowed = false;
             }
 
-            return {...r, isFollowed}
+            return { ...r, isFollowed }
         });
 
-    return res.status(200).send(finalResult);
-} catch (err) {
-    return res.status(500).send(err.message)
-}
+        return res.status(200).send(finalResult);
+    } catch (err) {
+        return res.status(500).send(err.message)
+    }
 }
 
 
@@ -128,7 +128,24 @@ export async function userHasFriends(req, res) {
         es.status(500).send(err.message)
 
     }
+}
 
+export async function userIsFollowedByMe(req, res) {
+    const { userId } = res.locals.session;
+    const { id } = req.params;
+    let userIsFollowedByMe = false;
+
+    try {
+        const result = await verifyFollowingUser(userId, id);
+        if (result.rowCount === 1) {
+            userIsFollowedByMe = true;
+        }
+
+        res.send(userIsFollowedByMe);
+    } catch (error) {
+        es.status(500).send(err.message)
+
+    }
 }
 
 
@@ -157,7 +174,7 @@ export async function followUser(req, res) {
     const { id } = req.params; // followedId
     const { userId } = res.locals.session; // followerId
 
-    if (Number(id) === userId) return res.status(401).send({message: "you can't follow your own, although that's is nice"})
+    if (Number(id) === userId) return res.status(401).send({ message: "you can't follow your own, although that's is nice" })
 
     try {
 
