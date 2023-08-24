@@ -114,24 +114,25 @@ export async function getPostsByUser(req, res) {
 export async function savePost(req, res) {
     const { url, description, userId } = req.body
 
-    console.log(url, description, userId)
     
     console.log('entrou no savePost')
     try {
-        console.log('entrou no inseriu')
+       
         await db.query(`INSERT INTO post ("userId", url, description) VALUES ($1, $2, $3);`, [userId, url, description])
 
         res.status(200).send('Success on posting!')
     } catch (err) {
-        console.log('deu erro no savePost')
+        
         console.log(err.message)
         return res.status(500).send(err.message);
     }
 }
 
 export async function getPostsTimeline(req, res) {
+    console.log(res)
+    sfdsfs
     const UserId = res.locals.session.userId; // id do usuario que está vendo os posts
-
+    
     try {
 
         const posts = (await db.query(`
@@ -210,8 +211,11 @@ export async function getPostsTimeline(req, res) {
             }
         })
 
+        console.log('tudo certo!')
+
         return res.status(200).send(resposta)
-    } catch (error) {
+    } catch (error) {   
+        console.log('deu erro na função', error.message)
         return res.status(500).send(error.message)
     }
 };

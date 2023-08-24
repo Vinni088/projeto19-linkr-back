@@ -6,6 +6,7 @@ import { getPostsByUser, getPostsTimeline, savePost, updatePost, deletePost, add
 const postsRouter = Router();
 
 postsRouter.get("/posts/timeline", validateAuth, getPostsTimeline);
+// postsRouter.get("/posts/timeline", getPostsTimeline);
 postsRouter.get("/posts/user/:id", validateAuth, getPostsByUser);
 
 postsRouter.post("/timeline", validateAuth, savePost);
