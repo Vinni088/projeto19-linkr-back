@@ -1,6 +1,6 @@
 import { Router } from "express"
 import { validateAuth } from "../middlewares/validateAuth.js";
-import { getPostsByUser, getPostsTimeline, savePost, updatePost, deletePost, addRepost, addComment } from "../controllers/post.controller.js";
+import { getPostsByUser, getPostsTimeline, savePost, updatePost, deletePost, addRepost, addComment, dislikePost, likePost } from "../controllers/post.controller.js";
 
 
 const postsRouter = Router();
@@ -14,5 +14,8 @@ postsRouter.post("/post/:postId/comment", validateAuth, addComment)
 
 postsRouter.put("/post/:postId", validateAuth, updatePost);
 postsRouter.delete("/post/:postId", validateAuth, deletePost);
+postsRouter.post("/post/:postId/like", validateAuth, likePost);
+postsRouter.post("/post/:postId/dislike", validateAuth, dislikePost);
+
 
 export default postsRouter;

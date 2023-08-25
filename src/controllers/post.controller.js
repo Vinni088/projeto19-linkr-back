@@ -1,7 +1,45 @@
-import { returnPostsRelatedToHashtag } from "../repositories/posts.repository.js";
+import { deleteLike, insertLike, returnPostsRelatedToHashtag, selectLike, selectPost } from "../repositories/posts.repository.js";
 import { db } from "../database/database.connection.js";
 import { v4 as TokenGenerator } from "uuid";
 import { returnHashtagsFromPost } from "../repositories/hashtag.repositories.js";
+
+export async function likePost(req, res) {
+    const { postId } = req.params;
+    const { userId } = res.locals.session;
+
+    try {
+        const result = await selectPost(postId);
+        if (result.rowCount === 0) return res.status(404).send({message: "Post do not exists!"});
+
+        const result2 = await selectLike(postId, userId);
+        if (result2.rowCount === 1) return res.status(409).send({message: "The post has been liked by you already!"});
+
+        await insertLike(postId, userId);
+        res.send(201);
+
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+}
+
+export async function dislikePost(req, res) {
+    const { postId } = req.params;
+    const { userId } = res.locals.session;
+
+    try {
+        const result = await selectPost(postId);
+        if (result.rowCount === 0) return res.status(404).send({message: "Post do not exists!"});
+
+        const result2 = await selectLike(postId, userId);
+        if (result2.rowCount === 0) return res.status(409).send({message: "The post has not been liked by you yet!"});
+
+        await deleteLike(postId, userId);
+        res.send(204);
+
+    } catch (err) {
+        return res.status(500).send(err.message);
+    }
+}
 
 export async function getPostsRelatedToHashtag(req, res) {
     const { hashtag } = req.params;
@@ -9,10 +47,10 @@ export async function getPostsRelatedToHashtag(req, res) {
     try {
         const result = await returnPostsRelatedToHashtag(hashtag);
         const result2 = await returnHashtagsFromPost();
-        
+
         const transformedResult = result.rows.map(r => {
             const matchRow = result2.rows.find(row => row.id === r.postId);
-            return {...r, hashtags: matchRow.hashtags}
+            return { ...r, hashtags: matchRow.hashtags }
         });
 
         res.send(transformedResult);
@@ -58,7 +96,7 @@ export async function getPostsByUser(req, res) {
         WHERE "post"."userId"=$1
         GROUP BY post.id
         ORDER BY post.id
-        `,[id])).rows
+        `, [id])).rows
 
         let likedBy = (await db.query(`
         SELECT * FROM "like"
@@ -172,7 +210,7 @@ export async function getPostsTimeline(req, res) {
 			WHERE p."userId"=$1
             GROUP BY p.id;`, [UserId]);
 
-            
+
         const mappedHashtags = hashtags.rows.map(o => o.hashtags);
 
         let whoLiked = await db.query(`
@@ -182,10 +220,10 @@ export async function getPostsTimeline(req, res) {
             WHERE p."userId"=$1
             GROUP BY p.id;`, [UserId]);
 
-            console.log(posts);
+        console.log(posts);
 
         const mappedWhoLiked = whoLiked.rows.map(o => o.whoLiked);
-          
+
         let resposta = posts.map((post, index) => {
             return {
                 userId: post.userId,
