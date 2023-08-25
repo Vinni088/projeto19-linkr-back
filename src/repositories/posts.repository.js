@@ -11,3 +11,19 @@ export function returnPostsRelatedToHashtag(hashtag) {
                 JOIN "user" u ON u.id=p."userId"
                 WHERE h.name=$1;`, [hashtag]);
 }
+
+export function insertLike(postId, userId) {
+    return db.query(`INSERT INTO "like" ("postId", "userId") VALUES ($1, $2);`, [postId, userId]);
+}
+
+export function deleteLike(postId, userId) {
+    return db.query(`DELETE FROM "like" WHERE "postId"=$1 AND "userId"=$2;`, [postId, userId]);
+}
+
+export function selectLike(postId, userId) {
+    return db.query(`SELECT * FROM "like" WHERE "postId"=$1 AND "userId"=$2;`, [postId, userId]);
+}
+
+export function selectPost(postId) {
+    return db.query(`SELECT * FROM post WHERE id=$1;`, [postId]);
+}
